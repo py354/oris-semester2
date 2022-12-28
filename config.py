@@ -1,0 +1,2 @@
+SERVER_ADDRESS = ('0.0.0.0', 8008)
+DATABASE_FILE = 'data.db'
