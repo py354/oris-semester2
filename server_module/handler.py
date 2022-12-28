@@ -75,9 +75,11 @@ class Server:
                     _, ok = have_num_near(game.map, 0, i, j)
                     if not ok:
                         if game.creator == pid:
+                            self.db.add_score(game.creator)
                             game.creator_sock.send(GameStatusPacket('win', game.to_dict()).to_binary())
                             game.opponent_sock.send(GameStatusPacket('lose', game.to_dict()).to_binary())
                         else:
+                            self.db.add_score(game.opponent)
                             game.creator_sock.send(GameStatusPacket('lose', game.to_dict()).to_binary())
                             game.opponent_sock.send(GameStatusPacket('win', game.to_dict()).to_binary())
                         return
