@@ -33,14 +33,13 @@ class Server:
         }
 
     def make_move_handler(self, sock: socket.socket, address, p: MakeMovePacket):
-        print('move', address, p.x, p.y)
         game = self.attached_sessions[str(address)]['game']
         pid = self.attached_sessions[str(address)]['pid']
         if game is None:
             sock.send(GameStatusPacket("error", {}).to_binary())
-            print('return1')
             return
 
+        print('move', p, pid, game.to_dict())
         # 1. + Проверить ли вообще он может так ходить
         # 2. + Изменить состояние
         # 3. - Если победа, отправить состояние победы
@@ -52,13 +51,11 @@ class Server:
             header, ok = have_num_near(game.map, 2, p.x, p.y)
             if game.map[p.x][p.y] == 0 and ok:
                 is_possible = True
-                print('ispossible1')
 
         if game.status == 2 and game.opponent == pid:
             header, ok = have_num_near(game.map, 4, p.x, p.y)
             if game.map[p.x][p.y] == 0 and ok:
                 is_possible = True
-                print('ispossible2')
 
         if not is_possible:
             return
@@ -89,11 +86,12 @@ class Server:
 
     def connect_game_handler(self, sock: socket.socket, address, p: ConnectGamePacket):
         game = self.db.get_game_with_gid(p.gid)
+        pid = self.attached_sessions[str(address)]['pid']
         if game is None or game.status != 0:
             sock.send(GameStatusPacket("error", {}).to_binary())
             return
 
-        game.start_game(p.gid, sock)
+        game.start_game(pid, sock)
         self.attached_sessions[str(address)]['game'] = game
         sock.send(GameStatusPacket("connected", game.to_dict()).to_binary())
         game.creator_sock.send(GameStatusPacket('opponent_connected', game.to_dict()).to_binary())
@@ -169,13 +167,17 @@ class Server:
     def afk_handler(self, address):
         session = self.attached_sessions[str(address)]
         # + 0) перестать слать пинги и обрабатывать пакеты
+        print('afk1.2')
 
         if 'pid' not in session:
             return
 
         # 1) если есть активная игра засчитать победу противнику
         # TODO: обработка действий с оппонентами
+        print('afk1.3')
+
         if 'game' in session:
+            print('afk1.4')
             game = session['game']
             self.db.delete_game(game.gid)
             if game.status != 0:
